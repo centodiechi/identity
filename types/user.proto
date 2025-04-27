@@ -1,0 +1,47 @@
+syntax="proto3";
+
+package identity.user;
+
+option go_package = "./v1";
+
+service Identity {
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+    rpc Login(LoginRequest) returns (LoginResponse);
+    rpc LogOut(Empty) returns (Empty);
+    rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse);
+}
+
+
+message CreateUserRequest {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message CreateUserResponse {
+    string uid = 1;
+    string email = 2;
+    string username = 3;
+}
+
+message LoginRequest {
+    string email = 1;
+    string password = 2;  
+}
+
+message LoginResponse {
+    string access_token = 1;
+    string refresh_token = 2;
+}
+
+message GetUserByIdRequest {
+    string uid = 1;
+}
+
+message GetUserByIdResponse {
+    string uid = 1;
+    string username = 2;
+    string email = 3;
+}
+
+message Empty {}

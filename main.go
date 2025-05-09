@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	idt "github.com/centodiechi/identity/internal"
+	"github.com/centodiechi/identity/internal"
 	v1 "github.com/centodiechi/identity/protos/v1"
 	"google.golang.org/grpc"
 )
@@ -15,7 +15,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
+
+	identityService, err := internal.NewIdentity()
+	if err != nil {
+		log.Fatalf("Failed to create identity service: %v", err)
+	}
+	log.Printf("Identity service initialized successfully")
 	server := grpc.NewServer()
-	v1.RegisterIdentityServer(server, &idt.Identity{})
+	v1.RegisterIdentityServer(server, identityService)
 	server.Serve(lis)
 }

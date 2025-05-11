@@ -10,7 +10,7 @@ import (
 )
 
 type identity struct {
-	store store.Store
+	store map[string]store.Store
 	userpb.UnimplementedIdentityServer
 }
 
@@ -29,7 +29,20 @@ func NewIdentity() (*identity, error) {
 		log.Printf("Failed to initialize store: %v", err)
 		return nil, err
 	}
-	return &identity{store: storeInstance}, nil
+	storeInstanceDB, err := store.InitializeStore("redis", store.RedisMeta{
+		Host:     "localhost",
+		Port:     "6379",
+		Password: "",
+		DB:       0,
+	})
+	if err != nil {
+		log.Printf("Failed to initialize store: %v", err)
+		return nil, err
+	}
+	return &identity{store: map[string]store.Store{
+		"pgsql": storeInstance,
+		"redis": storeInstanceDB,
+	}}, nil
 }
 
 func (idt *identity) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error) {
@@ -38,7 +51,7 @@ func (idt *identity) CreateUser(ctx context.Context, req *userpb.CreateUserReque
 		return nil, fmt.Errorf("store is not initialized")
 	}
 
-	idt.store.Set(ctx, "user/identity/", []byte(req.Email))
+	idt.store["pgsql"].Set(ctx, "user/identity/", []byte(req.Email))
 
 	return &userpb.CreateUserResponse{
 		Uid:      "1212",

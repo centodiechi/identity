@@ -6,6 +6,7 @@ import (
 	"log"
 
 	userpb "github.com/centodiechi/identity/protos/v1"
+	"github.com/centodiechi/identity/utils"
 	"github.com/centodiechi/store"
 )
 
@@ -51,10 +52,24 @@ func (idt *identity) CreateUser(ctx context.Context, req *userpb.CreateUserReque
 		return nil, fmt.Errorf("store is not initialized")
 	}
 
-	idt.store["pgsql"].Set(ctx, "user/identity/", []byte(req.Email))
+	uid, err := idt.store["redis"].(*store.RedisStore).GetNextID(ctx)
+	if err != nil {
+		log.Printf("Failed to get next ID: %v", err)
+		return nil, err
+	}
+
+	hashedPassword, err := utils.GetPasswordHash(req.Password)
+	if err != nil {
+		log.Printf("Failed to hash password: %v", err)
+		return nil, err
+	}
+
+	idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/email", uid), []byte(req.Email))
+	idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/password", uid), []byte(hashedPassword))
+	idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/username", uid), []byte(req.Username))
 
 	return &userpb.CreateUserResponse{
-		Uid:      "1212",
+		Uid:      uid,
 		Username: req.Username,
 		Email:    req.Email,
 	}, nil

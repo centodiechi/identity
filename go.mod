@@ -4,6 +4,7 @@ go 1.24.3
 
 require (
 	github.com/centodiechi/store v0.0.0-20250513134607-1a6fef8cef8f
+	golang.org/x/crypto v0.33.0
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 )
@@ -18,7 +19,6 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/redis/go-redis/v9 v9.8.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect

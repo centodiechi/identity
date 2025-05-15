@@ -8,12 +8,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type identityClient struct {
+type IdentityClient struct {
 	conn   *grpc.ClientConn
 	client v1.IdentityClient
 }
 
-func GetIdtClient() (*identityClient, error) {
+func GetIdtClient() (*IdentityClient, error) {
 	conn, err := grpc.NewClient("localhost:8888", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to server: %w", err)
@@ -21,7 +21,7 @@ func GetIdtClient() (*identityClient, error) {
 
 	client := v1.NewIdentityClient(conn)
 
-	return &identityClient{
+	return &IdentityClient{
 		conn:   conn,
 		client: client,
 	}, nil

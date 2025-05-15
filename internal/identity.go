@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/centodiechi/identity/client"
 	userpb "github.com/centodiechi/identity/protos/v1"
 	"github.com/centodiechi/identity/utils"
 	"github.com/centodiechi/store"
@@ -13,6 +14,7 @@ import (
 type identity struct {
 	store map[string]store.Store
 	userpb.UnimplementedIdentityServer
+	client *client.IdentityClient
 }
 
 func NewIdentity() (*identity, error) {
@@ -40,10 +42,17 @@ func NewIdentity() (*identity, error) {
 		log.Printf("Failed to initialize store: %v", err)
 		return nil, err
 	}
+	idtclient, err := client.GetIdtClient()
+	if err != nil {
+		log.Printf("Failed to get identity client: %v", err)
+		return nil, err
+	}
 	return &identity{store: map[string]store.Store{
 		"pgsql": storeInstance,
 		"redis": storeInstanceDB,
-	}}, nil
+	},
+		client: idtclient,
+	}, nil
 }
 
 func (idt *identity) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error) {

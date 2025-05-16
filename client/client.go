@@ -26,3 +26,10 @@ func GetIdtClient() (*IdentityClient, error) {
 		client: client,
 	}, nil
 }
+
+func (c *IdentityClient) Close() error {
+	if c.conn != nil {
+		return c.conn.Close()
+	}
+	return nil
+}

@@ -9,8 +9,8 @@ import (
 )
 
 type IdentityClient struct {
-	conn   *grpc.ClientConn
-	client v1.IdentityClient
+	Conn   *grpc.ClientConn
+	Client v1.IdentityClient
 }
 
 func GetIdtClient() (*IdentityClient, error) {
@@ -22,14 +22,14 @@ func GetIdtClient() (*IdentityClient, error) {
 	client := v1.NewIdentityClient(conn)
 
 	return &IdentityClient{
-		conn:   conn,
-		client: client,
+		Conn:   conn,
+		Client: client,
 	}, nil
 }
 
 func (c *IdentityClient) Close() error {
-	if c.conn != nil {
-		return c.conn.Close()
+	if c.Conn != nil {
+		return c.Conn.Close()
 	}
 	return nil
 }

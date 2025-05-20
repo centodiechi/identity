@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/centodiechi/identity/internal/jwt"
 	userpb "github.com/centodiechi/identity/protos/v1"
 	"github.com/centodiechi/identity/utils"
 	"github.com/centodiechi/store"
 )
 
 var (
-	StoreNotInitializedErr = errors.New("store is not initialized")
-	InvalidCredentials     = errors.New("invalid credentials")
+	ErrStoreNotInitialized = errors.New("store is not initialized")
+	ErrInvalidCredentials  = errors.New("invalid credentials")
 )
 
 type identity struct {
@@ -56,7 +57,7 @@ func NewIdentity() (*identity, error) {
 func (idt *identity) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error) {
 
 	if idt.store == nil {
-		return nil, StoreNotInitializedErr
+		return nil, ErrStoreNotInitialized
 	}
 
 	uid, err := idt.store["redis"].(*store.RedisStore).GetNextID(ctx)
@@ -95,16 +96,24 @@ func (idt *identity) Login(ctx context.Context, req *userpb.LoginRequest) (*user
 
 	uid, err := idt.store["pgsql"].(*store.PgStore).GetUIDFromEmail(ctx, "identity/user/%/email", req.Email)
 	if err != nil {
-		return nil, InvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
 	password, err := idt.store["pgsql"].(*store.PgStore).Get(ctx, fmt.Sprintf("identity/user/%s/password", uid))
 	if err != nil {
-		return nil, InvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
 	if err = utils.ComparePasswordHash(password, req.Password); err != nil {
-		return nil, InvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
+	accessToken, refreshToken, err := jwt.GetTokenPair(uid, "user")
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token pair: %w", err)
+	}
+	return &userpb.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

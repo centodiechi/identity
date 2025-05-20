@@ -1,11 +1,24 @@
 package jwt
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
+
+const (
+	signKey              = "dojf!2kfodlmxcWWER@#@!@#"
+	AccessTokenDuration  = 15 * time.Minute
+	RefreshTokenDuration = 30 * 24 * time.Hour
+)
+
+type TokenClaims struct {
+	UserID string `json:"uid"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
+}
 
 func formatToken(tokenString string) string {
 	parts := strings.Split(tokenString, ".")
@@ -13,34 +26,63 @@ func formatToken(tokenString string) string {
 		return tokenString
 	}
 
-	headerHash := sha256.Sum256([]byte(parts[0]))
-	payloadHash := sha256.Sum256([]byte(parts[1]))
-	signatureHash := sha256.Sum256([]byte(parts[2]))
-
-	header := base64.RawURLEncoding.EncodeToString(headerHash[:])[:8]
-	payload := base64.RawURLEncoding.EncodeToString(payloadHash[:])[:8]
-	signature := base64.RawURLEncoding.EncodeToString(signatureHash[:])[:8]
-
-	return fmt.Sprintf("%s-%s-%s", header, payload, signature)
+	return fmt.Sprintf("%s-%s-%s", parts[0], parts[1], parts[2])
 }
 
-func GetTokenPair(userId string) (string, string, error) {
-	accessToken, err := GenerateAccessToken(userId)
+func GetTokenPair(userId, role string) (string, string, error) {
+	accessToken, err := GenerateAccessToken(userId, role)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := GenerateRefreshToken(userId)
+	refreshToken, err := GenerateRefreshToken(userId, role)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	return
+	return accessToken, refreshToken, nil
 }
 
-func GenerateAccessToken(userId string) (string, error) {
-	return "", nil
+func GenerateAccessToken(userId string, role string) (string, error) {
+	now := time.Now()
+	claims := TokenClaims{
+		UserID: userId,
+		Role:   role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(AccessTokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			Issuer:    "identity-service",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString(signKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return formatToken(tokenString), nil
 }
 
-func GenerateRefreshToken(userId string) (string, error) {
+func GenerateRefreshToken(userId string, role string) (string, error) {
+	now := time.Now()
+	claims := TokenClaims{
+		UserID: userId,
+		Role:   role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(RefreshTokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			Issuer:    "identity-service",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString(signKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return formatToken(tokenString), nil
 }

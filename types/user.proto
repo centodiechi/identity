@@ -12,16 +12,23 @@ service Identity {
 }
 
 
+enum UserRole {
+    USER = 0;
+    ADMIN = 1;
+}
+
 message CreateUserRequest {
     string username = 1;
     string email = 2;
     string password = 3;
+    UserRole role = 4;
 }
 
 message CreateUserResponse {
     string uid = 1;
     string email = 2;
     string username = 3;
+    string role = 4;
 }
 
 message LoginRequest {

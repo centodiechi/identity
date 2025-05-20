@@ -2,12 +2,18 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
 	userpb "github.com/centodiechi/identity/protos/v1"
 	"github.com/centodiechi/identity/utils"
 	"github.com/centodiechi/store"
+)
+
+var (
+	StoreNotInitializedErr = errors.New("store is not initialized")
+	InvalidCredentials     = errors.New("invalid credentials")
 )
 
 type identity struct {
@@ -50,7 +56,7 @@ func NewIdentity() (*identity, error) {
 func (idt *identity) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error) {
 
 	if idt.store == nil {
-		return nil, fmt.Errorf("store is not initialized")
+		return nil, StoreNotInitializedErr
 	}
 
 	uid, err := idt.store["redis"].(*store.RedisStore).GetNextID(ctx)
@@ -65,13 +71,40 @@ func (idt *identity) CreateUser(ctx context.Context, req *userpb.CreateUserReque
 		return nil, err
 	}
 
-	idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/email", uid), []byte(req.Email))
-	idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/password", uid), []byte(hashedPassword))
+	err = idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/email", uid), []byte(req.Email))
+	if err == store.ErrKeyAlreadyExists {
+		return nil, fmt.Errorf("email already exists")
+	}
 	idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/username", uid), []byte(req.Username))
+	if err == store.ErrKeyAlreadyExists {
+		return nil, fmt.Errorf("username already exists")
+	}
+	idt.store["pgsql"].Set(ctx, fmt.Sprintf("identity/user/%s/password", uid), []byte(hashedPassword))
 
 	return &userpb.CreateUserResponse{
 		Uid:      uid,
 		Username: req.Username,
 		Email:    req.Email,
 	}, nil
+}
+
+func (idt *identity) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
+	if idt.store == nil {
+		return nil, fmt.Errorf("store is not initialized")
+	}
+
+	uid, err := idt.store["pgsql"].(*store.PgStore).GetUIDFromEmail(ctx, "identity/user/%/email", req.Email)
+	if err != nil {
+		return nil, InvalidCredentials
+	}
+
+	password, err := idt.store["pgsql"].(*store.PgStore).Get(ctx, fmt.Sprintf("identity/user/%s/password", uid))
+	if err != nil {
+		return nil, InvalidCredentials
+	}
+
+	if err = utils.ComparePasswordHash(password, req.Password); err != nil {
+		return nil, InvalidCredentials
+	}
+
 }

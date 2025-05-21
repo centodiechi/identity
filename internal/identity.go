@@ -98,12 +98,12 @@ func (idt *identity) Login(ctx context.Context, req *userpb.LoginRequest) (*user
 	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
-
+	fmt.Println("uid : ", uid)
 	password, err := idt.store["pgsql"].(*store.PgStore).Get(ctx, fmt.Sprintf("identity/user/%s/password", uid))
 	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
-
+	fmt.Println("password : ", password)
 	if err = utils.ComparePasswordHash(password, req.Password); err != nil {
 		return nil, ErrInvalidCredentials
 	}

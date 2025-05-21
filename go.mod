@@ -3,7 +3,7 @@ module github.com/centodiechi/identity
 go 1.24.3
 
 require (
-	github.com/centodiechi/store v0.0.0-20250520112127-c7cdf2200b4c
+	github.com/centodiechi/store v0.0.0-20250520180759-7cf13347aa05
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	golang.org/x/crypto v0.38.0
 	google.golang.org/grpc v1.72.1
